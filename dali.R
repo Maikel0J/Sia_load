@@ -1,6 +1,8 @@
 # Initialisatie
 library(data.table)
 library(ggplot2)
+library(dplyr)
+library(lubridate)
 
 setwd('D:/NoBackup/sia')
 rm(list=ls())
@@ -20,15 +22,25 @@ df$value <- gsub(',', '',df$value)
 df$value <- as.numeric(df$value)
 
 
-# Analyse data
+# Analyse & bewerken data
 str(df)
 summary(df)
 
 # Bewerken data
 columns_keep <- c('deviceid', 'timestamp', 'value', 'description', 'unit')
-df_subset <- df[df$description == 'RealEnergyDelivered.Sum' , columns_keep]
+df_subset <- df[df$description == 'ActivePower.Sum' , columns_keep]
 
-g <- ggplot(data = df_subset, aes(x = timestamp, y = value)) 
+    # http://stackoverflow.com/questions/10862056/rounding-time-to-nearest-quarter-hour
+    #df_subset$timestamp_afgerond <- format(strptime("1970-01-01", "%Y-%m-%d", tz="GMT") + round(as.numeric(df_subset$timestamp)/900)*900,"%Y-%m-%d %H:%M")
+
+#https://rdrr.io/cran/lubridate/man/round_date.html
+df_subset$timestamp_afgerond <- ceiling_date(df_subset$timestamp, "15 mins")
+
+# http://stackoverflow.com/questions/30024437/applying-group-by-and-summarise-on-data-while-keeping-all-the-columns-info
+df_subset_15mins <- df_subset %>% group_by(timestamp_afgerond) %>%
+  filter(timestamp == max(timestamp))
+
+g <- ggplot(data = df_subset_15mins, aes(x = timestamp, y = value)) 
 g <- g + geom_line()  
 g <- g + theme(panel.border = element_blank(),
                panel.background = element_blank(),
@@ -38,7 +50,7 @@ g <- g + theme(panel.border = element_blank(),
                axis.text = element_text(size = 10),
                axis.title = element_text(size = 12, face = "bold"),
                strip.text = element_text(size = 9, face = "bold")) 
-g <- g + labs(x = "Datum", y = "Real Energy Consumed")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+g <- g + labs(x = "Datum", y = "ActivePower.Sum")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 g
 
 
